@@ -4,6 +4,7 @@
 (define (caddr lst) (car (cdr (cdr lst))))
 (define (cadddr lst) (car (cdr (cdr (cdr lst)))))
 (import "lumetas/llweb/controller")
+(import "lumetas/llweb/env")
 (import "lumetas/llweb/Model")
 (import "lumetas/llweb/Schema")
 (import "lumetas/llweb/Migration")
@@ -41,34 +42,6 @@
 (define *routes* ())
 (define *static-dir* "static")
 (define *env* ())
-
-; --- .env ---
-(define (load-env)
-  (if (file-exists? ".env")
-    (begin
-      (define content (file->string ".env"))
-      (define lines (string-split content "\n"))
-      (for-each (lambda (line)
-        (define trimmed (string-trim line))
-        (if (> (string-length trimmed) 0)
-          (if (not (string-prefix? trimmed "#"))
-            (if (not (= (string-find trimmed "=") -1))
-              (begin
-                (define eq-pos (string-find trimmed "="))
-                (define key (string-trim (substring trimmed 0 eq-pos)))
-                (define val (string-trim (substring trimmed (+ eq-pos 1) (string-length trimmed))))
-                (set! *env* (acons key val *env*)))
-              ())
-            ())
-          ()))
-        lines)
-      (println "[llweb] .env loaded"))
-    (println "[llweb] No .env file, using defaults")))
-
-(define (env key . default)
-  (define pair (assoc key *env*))
-  (if pair (cdr pair)
-    (if (null? default) "" (car default))))
 
 ; --- Router ---
 (define (router/add-route method path controller-class method-sym)
@@ -157,8 +130,9 @@
 (define (llweb/set-static dir)
   (set! *static-dir* dir))
 
-(define (llweb/start host port)
-  (load-env)
+(define (llweb/start)
+  (define host  (env "HOST" "localhost"))
+  (define port (string->number (env "PORT" 8000)))
   (println "[llweb] starting on " host ":" port)
   (define server (http/create-server host port))
   (http/set-handler server handle-request)

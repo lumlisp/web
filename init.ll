@@ -21,9 +21,9 @@
 (dir (string-append *root* "/storage"))
 
 (write-file (string-append *root* "/.env")
-"LLWEB_HOST=localhost
-LLWEB_PORT=8000
-LLWEB_DB=storage/llweb.db")
+"HOST=localhost
+PORT=8000
+DB=storage/llweb.db")
 
 (write-file (string-append *root* "/main.ll")
 "(import \"lumetas/llweb/bootstrap\")
@@ -36,7 +36,7 @@ LLWEB_DB=storage/llweb.db")
 
 (migration/up)
 
-(llweb/start \"localhost\" 8000)")
+(llweb/start)")
 
 (write-file (string-append *root* "/migrate.ll")
 "; LLWeb Migration CLI
