@@ -32,7 +32,7 @@ DB=storage/llweb.db")
 (db/init)
 
 (import \"Migrations\")
-(import \"Controllers/Home\")
+(import \"Controllers/Index\")
 
 (migration/up)
 
@@ -81,62 +81,20 @@ DB=storage/llweb.db")
   (lambda ()
     (schema/drop-table \"posts\")))")
 
-(write-file (string-append *root* "/app/Controllers/Home.ll")
+(write-file (string-append *root* "/app/Controllers/Index.ll")
 "(import \"lumetas/llweb/View\")
 
-(defclass HomeController (Controller) ())
+(defclass IndexController (Controller) ())
 
-(router/add-route \"GET\" \"/\" HomeController 'index)
+(router/add-route \"GET\" \"/\" IndexController 'index)
 
-(defmethod HomeController index (self ctx)
-  (return (View/render \"index\" (list
+(defmethod IndexController index (self ctx)
+  (return (View/render \"Welcome\" (list
     (cons \"title\" \"Home — LLWeb\")
-    (cons \"param\" \"hello from LL!\")
-    (cons \"param2\" \"MVC framework\")
-    (cons \"param3\" \"lumetas/llweb\")))))")
+    (cons \"message\" \"Your Lum Lisp web application is ready. Start building something incredible.\")
+    (cons \"version\" \"0.0.1\")))))")
 
-(write-file (string-append *root* "/app/Views/layout.html")
-"<!DOCTYPE html>
-<html lang=\"en\">
-<head>
-<meta charset=\"UTF-8\">
-<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
-<title>{{title}}</title>
-<link rel=\"stylesheet\" href=\"/css/app.css\">
-</head>
-<body>
-<nav>
-  <a href=\"/\">Home</a>
-  <a href=\"/posts\">Posts</a>
-  <a href=\"/posts/create\">New Post</a>
-</nav>
-<main>
-{{flash}}
-{{content}}
-</main>
-<script src=\"/js/app.js\"></script>
-</body>
-</html>")
-
-(write-file (string-append *root* "/app/Views/index.html")
-"<section>
-  <h1>LLWeb</h1>
-  <p>{{param}}</p>
-  <p>{{param2}}</p>
-  <p>{{param3}}</p>
-</section>")
-
-(write-file (string-append *root* "/static/css/app.css")
-"* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: system-ui, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 1rem; }
-nav { padding: 1rem 0; border-bottom: 2px solid #eee; margin-bottom: 2rem; }
-nav a { margin-right: 1rem; color: #0066cc; text-decoration: none; }
-nav a:hover { text-decoration: underline; }
-h1 { margin-bottom: 1rem; }
-.flash { padding: 0.75rem; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; margin-bottom: 1rem; }")
-
-(write-file (string-append *root* "/static/js/app.js")
-"console.log('LLWeb app loaded');")
+(write-file (string-append *root* "/app/Views/Welcome.html") (file->string (string-append *root* "/ll_modules/lumetas/llweb/init/Welcome.html")))
 
 (println "")
     (println "Done! Project created at: " *root*)

@@ -1,0 +1,237 @@
+<!-- app/Views/welcome.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLWeb — Lum Lisp Framework</title>
+    <link rel="stylesheet" href="/css/app.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Fira Code', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 3rem;
+            max-width: 800px;
+            margin: 2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .logo h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 800;
+        }
+        
+        .logo .tagline {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        
+        .version-badge {
+            background: #667eea;
+            color: white;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-top: 0.5rem;
+        }
+        
+        .info-panel {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-left: 4px solid #667eea;
+        }
+        
+        .info-panel h3 {
+            color: #333;
+            margin-bottom: 0.8rem;
+            font-size: 1.2rem;
+        }
+        
+        .info-panel code {
+            background: #2d3748;
+            color: #fbbf24;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+        }
+        
+        .routes-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        
+        .routes-table td {
+            padding: 0.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .routes-table td:first-child {
+            font-family: monospace;
+            font-weight: bold;
+            color: #667eea;
+            width: 100px;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        
+        .feature {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.3rem;
+        }
+        
+        .feature-desc {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .button {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 0.7rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            margin: 0.5rem;
+            transition: transform 0.2s;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            background: #5a67d8;
+        }
+        
+        .button-outline {
+            background: transparent;
+            border: 2px solid #667eea;
+            color: #667eea;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e2e8f0;
+            font-size: 0.8rem;
+            color: #888;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #48bb78;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>⚡ LLWeb</h1>
+            <div class="tagline">Lightning fast Lisp web framework</div>
+            <div class="version-badge">v0.1.0</div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>🎉 {{title}}</h3>
+            <p>{{message}}</p>
+            <p><span class="status"></span> <strong>Server is running</strong> — You're ready to build something amazing!</p>
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🚀</div>
+                <div class="feature-title">Fast & Async</div>
+                <div class="feature-desc">Built on Go concurrency with futures</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎯</div>
+                <div class="feature-title">MVC Pattern</div>
+                <div class="feature-desc">Clean separation of concerns</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔄</div>
+                <div class="feature-title">Live Reload</div>
+                <div class="feature-desc">Auto-reload during development</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📦</div>
+                <div class="feature-title">Modules</div>
+                <div class="feature-desc">Simple package management with lpm</div>
+            </div>
+        </div>
+        
+        <h3>📋 Available Routes</h3>
+        <table class="routes-table">
+            <tr><td>GET /</td><td>Welcome page (you are here)</td></tr>
+            <tr><td>GET /api/health</td><td>Health check endpoint</td></tr>
+            <tr><td>GET /info</td><td>Framework information</td></tr>
+        </table>
+        
+        <div style="text-align: center; margin: 2rem 0;">
+            <a href="https://github.com/lumetas/llweb" class="button">📖 Documentation</a>
+            <a href="/info" class="button button-outline">ℹ️ System Info</a>
+        </div>
+        
+        <div class="footer">
+            <p>LLWeb — Lum Lisp Web Framework | Built with ❤️ using functional programming</p>
+            <p style="margin-top: 0.5rem;">
+                <code>ll main.ll</code> — running on localhost:8000
+            </p>
+        </div>
+    </div>
+</body>
+</html>
