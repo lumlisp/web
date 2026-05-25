@@ -15,9 +15,6 @@
 (dir (string-append *root* "/app/Controllers"))
 (dir (string-append *root* "/app/Models"))
 (dir (string-append *root* "/app/Views"))
-(dir (string-append *root* "/app/Views/posts"))
-(dir (string-append *root* "/static/css"))
-(dir (string-append *root* "/static/js"))
 (dir (string-append *root* "/storage"))
 
 (write-file (string-append *root* "/.env")
