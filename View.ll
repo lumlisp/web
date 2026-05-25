@@ -1,7 +1,7 @@
 ; LLWeb View Engine
 
-(define *view-dir* "app/Views")
-(define *layout-name* "layout")
+(define *view-dir* (env "VIEW_DIR" "app/Views"))
+(define *layout-name* (env "LAYOUT" "layout"))
 
 (define (View/render view-name data)
   (define view-path (string-append *view-dir* "/" view-name ".html"))

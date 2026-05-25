@@ -20,50 +20,18 @@
 (write-file (string-append *root* "/.env")
 "HOST=localhost
 PORT=8000
-DB=storage/llweb.db")
+DB=storage/llweb.db
+STATIC_DIR=static
+VIEW_DIR=app/Views
+LAYOUT=layout")
 
-(write-file (string-append *root* "/main.ll")
-"(import \"lumetas/llweb/bootstrap\")
-(add-module-path \"app\")
-(llweb/set-static \"static\")
-(db/init)
+(write-file (string-append *root* "/web") (file->string (string-append *root* "/ll_modules/lumetas/llweb/init/web.ll")))
 
-(import \"Migrations\")
-(import \"Controllers/Index\")
+(write-file (string-append *root* "/app/Routes.ll")
+"; LLWeb — Routes
+; Import all controllers here
 
-(migration/up)
-
-(llweb/start)")
-
-(write-file (string-append *root* "/migrate.ll")
-"; LLWeb Migration CLI
-; Usage: ll migrate.ll <command> [args]
-
-(import \"lumetas/llweb/bootstrap\")
-(add-module-path \"app\")
-(db/init)
-
-(define args *args*)
-
-(if (null? args)
-  (begin
-    (println \"Usage: ll migrate.ll <command> [args]\")
-    (println \"Commands: up, down [n], status, rollback [n]\"))
-  (begin
-    (import \"Migrations\")
-    (define cmd (car args))
-    (cond
-      ((string=? cmd \"up\") (migration/up))
-      ((string=? cmd \"down\")
-        (if (not (null? (cdr args)))
-          (migration/rollback (string->number (cadr args)))
-          (migration/down)))
-      ((string=? cmd \"rollback\")
-        (if (not (null? (cdr args)))
-          (migration/rollback (string->number (cadr args)))
-          (migration/down)))
-      ((string=? cmd \"status\") (migration/status))
-      (else (println \"Unknown command: \" cmd)))))")
+(import \"Controllers/Index\")")
 
 (write-file (string-append *root* "/app/Migrations.ll")
 "; LLWeb — Migration definitions
@@ -97,5 +65,5 @@ DB=storage/llweb.db")
     (println "Done! Project created at: " *root*)
     (println "")
     (println "Next steps:")
-	(println "	ll migrate.ll up")
-    (println "	ll main.ll")
+	(println "	ll web.ll migrate up")
+    (println "	ll web.ll serve")

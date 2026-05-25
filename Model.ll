@@ -1,21 +1,26 @@
 ; LLWeb Model — class-based data layer
 
 ; --- DB config ---
-(define *db-dir* "storage")
-(define *db-name* (string-append *db-dir* "/llweb.db"))
+(define *db-name* "storage/llweb.db")
 
 (define (db/set-dir dir)
-  (set! *db-dir* dir)
   (set! *db-name* (string-append dir "/llweb.db")))
 
 (define (db/set-name name)
-  (set! *db-name* (string-append *db-dir* "/" name)))
+  (set! *db-name* name))
+
+(define (file-dir path)
+  (define parts (string-split path "/"))
+  (if (= (length parts) 1) "."
+    (string-join (take parts (- (length parts) 1)) "/")))
 
 (define (db/init)
-  (if (not (file-exists? *db-dir*))
+  (set! *db-name* (env "DB" "storage/llweb.db"))
+  (define dir (file-dir *db-name*))
+  (if (not (file-exists? dir))
     (begin
-      (system (string-append "mkdir -p " *db-dir*))
-      (println "[llweb] created db dir: " *db-dir*)))
+      (system (string-append "mkdir -p " dir))
+      (println "[llweb] created db dir: " dir)))
   (println "[llweb] db: " *db-name*))
 
 (define (escape-sql s)
