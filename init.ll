@@ -68,7 +68,8 @@ LAYOUT=layout")
 ; Use @code(\"main.ll\") in your views to include it
 
 (define (init)
-  (display \"client loaded\"))")
+  (display \"client loaded\"))
+(init)")
 
 (println "")
     (println "Done! Project created at: " *root*)
