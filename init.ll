@@ -5,7 +5,7 @@
   (begin (system (string-append "mkdir -p " path)) (println "  created " path)))
 
 (define (write-file path content)
-  (system (string-append "cat > " path " << 'LLEOF'\n" content "\nLLEOF"))
+  (string->file path content)
   (println "  created " path))
 
 (begin
@@ -15,6 +15,7 @@
 (dir (string-append *root* "/app/Controllers"))
 (dir (string-append *root* "/app/Models"))
 (dir (string-append *root* "/app/Views"))
+(dir (string-append *root* "/app/client"))
 (dir (string-append *root* "/storage"))
 
 (write-file (string-append *root* "/.env")
@@ -25,7 +26,7 @@ STATIC_DIR=static
 VIEW_DIR=app/Views
 LAYOUT=layout")
 
-(write-file (string-append *root* "/web") (file->string (string-append *root* "/ll_modules/lumetas/llweb/init/web.ll")))
+(write-file (string-append *root* "/main.ll") (file->string (string-append *root* "/ll_modules/lumetas/llweb/init/main.ll")))
 
 (write-file (string-append *root* "/app/Routes.ll")
 "; LLWeb — Routes
@@ -61,9 +62,17 @@ LAYOUT=layout")
 
 (write-file (string-append *root* "/app/Views/Welcome.html") (file->string (string-append *root* "/ll_modules/lumetas/llweb/init/Welcome.html")))
 
+(write-file (string-append *root* "/app/client/main.ll")
+"; LLWeb Client Code
+; This file is served at /c/main.ll
+; Use @code(\"main.ll\") in your views to include it
+
+(define (init)
+  (display \"client loaded\"))")
+
 (println "")
     (println "Done! Project created at: " *root*)
     (println "")
     (println "Next steps:")
-	(println "	ll web.ll migrate up")
-    (println "	ll web.ll serve")
+	(println "	ll main.ll migrate up")
+    (println "	ll main.ll serve")

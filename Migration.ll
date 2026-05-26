@@ -17,8 +17,7 @@
 ; --- Query applied migrations ---
 (define (migration/applied-names)
   (migration/init)
-  (define raw (db/query (string-append "SELECT name FROM " *migrations-table* " ORDER BY id")))
-  (define rows (db/parse raw))
+  (define rows (db/query (string-append "SELECT name FROM " *migrations-table* " ORDER BY id")))
   (map (lambda (r) (cdr (assoc "name" r))) rows))
 
 (define (migration/pending-names)
@@ -45,8 +44,7 @@
 
 (define (migration/rollback count)
   (migration/init)
-  (define raw (db/query (string-append "SELECT name FROM " *migrations-table* " ORDER BY id DESC LIMIT " (number->string count))))
-  (define rows (db/parse raw))
+  (define rows (db/query (string-append "SELECT name FROM " *migrations-table* " ORDER BY id DESC LIMIT " (number->string count))))
   (define names (map (lambda (r) (cdr (assoc "name" r))) rows))
   (for-each (lambda (name)
     (define pair (assoc name *migrations*))

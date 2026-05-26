@@ -1,6 +1,7 @@
 ; LLWeb Model — class-based data layer
 
 ; --- DB config ---
+(define *db-conn* ())
 (define *db-name* "storage/llweb.db")
 
 (define (db/set-dir dir)
@@ -21,43 +22,18 @@
     (begin
       (system (string-append "mkdir -p " dir))
       (println "[llweb] created db dir: " dir)))
+  (set! *db-conn* (pdo/open "sqlite" *db-name*))
   (println "[llweb] db: " *db-name*))
 
 (define (escape-sql s)
-  (string-replace s "\"" "\"\""))
+  (string-replace s "'" "''"))
 
-; --- Raw SQL ---
+; --- Raw SQL via PDO ---
 (define (db/exec sql)
-  (system (string-append "sqlite3 " *db-name* " \"" (string-replace sql "\"" "\\\"") "\"")))
+  (pdo/exec *db-conn* sql))
 
 (define (db/query sql)
-  (define result (shell->string (string-append "sqlite3 -header -separator '|' " *db-name* " \"" (string-replace sql "\"" "\\\"") "\"")))
-  (string-trim result))
-
-(define (db/query-raw sql)
-  (define result (shell->string (string-append "sqlite3 -separator '|' " *db-name* " \"" (string-replace sql "\"" "\\\"") "\"")))
-  (string-trim result))
-
-; Parse pipe output WITH header row -> list of alists with named keys
-(define (db/parse result)
-  (if (string=? result "") ()
-    (begin
-      (define lines (string-split result "\n"))
-      (if (= (length lines) 1) ()
-        (begin
-          (define headers (string-split (car lines) "|"))
-          (define (build-index i acc)
-            (if (= i (length headers)) acc
-              (build-index (+ i 1) (acons (number->string i) (list-ref headers i) acc))))
-          (define header-map (build-index 0 ()))
-          (define (row->alist line)
-            (define cols (string-split line "|"))
-            (define (build-row i acc)
-              (if (= i (length cols)) acc
-                (build-row (+ i 1)
-                  (acons (cdr (assoc (number->string i) header-map)) (list-ref cols i) acc))))
-            (build-row 0 ()))
-          (map row->alist (cdr lines)))))))
+  (pdo/query *db-conn* sql))
 
 ; --- Model class ---
 (defclass Model ()
@@ -74,7 +50,7 @@
 ; --- Class-level CRUD (call via send) ---
 
 (defmethod Model all (self)
-  (define rows (db/parse (db/query (string-append "SELECT * FROM " (slot-ref self 'table-name)))))
+  (define rows (db/query (string-append "SELECT * FROM " (slot-ref self 'table-name))))
   (map (lambda (row)
     (new Model 'table-name (slot-ref self 'table-name)
               'columns (slot-ref self 'columns)
@@ -82,8 +58,8 @@
     rows))
 
 (defmethod Model find (self id)
-  (define rows (db/parse (db/query
-    (string-append "SELECT * FROM " (slot-ref self 'table-name) " WHERE id = " (number->string id)))))
+  (define rows (db/query
+    (string-append "SELECT * FROM " (slot-ref self 'table-name) " WHERE id = " (number->string id))))
   (if (null? rows) ()
     (new Model 'table-name (slot-ref self 'table-name)
               'columns (slot-ref self 'columns)
@@ -104,8 +80,8 @@
     (begin
       (define conditions (string-join
         (map (lambda (f) (string-append (car f) " = \"" (escape-sql (cdr f)) "\"")) filters) " AND "))
-      (define rows (db/parse (db/query
-        (string-append "SELECT * FROM " (slot-ref self 'table-name) " WHERE " conditions))))
+      (define rows (db/query
+        (string-append "SELECT * FROM " (slot-ref self 'table-name) " WHERE " conditions)))
       (map (lambda (row)
         (new Model 'table-name (slot-ref self 'table-name)
                   'columns (slot-ref self 'columns)
@@ -113,9 +89,9 @@
         rows))))
 
 (defmethod Model count (self)
-  (define raw (db/query-raw
-    (string-append "SELECT COUNT(*) FROM " (slot-ref self 'table-name))))
-  (string->number (string-trim raw)))
+  (define rows (db/query (string-append "SELECT COUNT(*) AS cnt FROM " (slot-ref self 'table-name))))
+  (if (null? rows) 0
+    (string->number (cdr (assoc "cnt" (car rows))))))
 
 ; --- Instance-level methods (call via send on records) ---
 
@@ -145,9 +121,9 @@
   (define id-pair (assoc "id" (slot-ref self 'data)))
   (if id-pair
     (begin
-      (define rows (db/parse (db/query
+      (define rows (db/query
         (string-append "SELECT * FROM " (slot-ref self 'table-name)
-          " WHERE id = " (cdr id-pair)))))
+          " WHERE id = " (cdr id-pair))))
       (if (not (null? rows))
         (slot-set! self 'data (car rows))))))
 

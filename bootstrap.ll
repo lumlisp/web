@@ -107,6 +107,36 @@
       (file->string filepath))
     ()))
 
+; --- Client code serving ---
+(define *client-dir* "app/client")
+(define *code-cache* ())
+
+(define (cache-get key)
+  (define pair (assoc key *code-cache*))
+  (if pair (cdr pair) ()))
+
+(define (cache-set key val)
+  (set! *code-cache* (acons key val *code-cache*)))
+
+(define (llweb/set-client-dir dir)
+  (set! *client-dir* dir))
+
+(define (serve-client req-path)
+  (define rel-path (substring req-path 3 (string-length req-path)))
+  (define file-path (string-append *client-dir* "/" rel-path))
+  (if (file-exists? file-path)
+    (begin
+      (define cached (cache-get file-path))
+      (define content (if cached cached
+        (begin
+          (define compiled (js/encode-file file-path))
+          (cache-set file-path compiled)
+          compiled)))
+      (http/make-response 200
+        (list (cons "Content-Type" "application/javascript"))
+        content))
+    ()))
+
 ; --- Handler ---
 (define (handle-request req)
   (define method (http/request-method req))
@@ -120,11 +150,17 @@
       (define instance (new controller-class
         'req req 'params params 'method method 'path path))
       (send instance method-sym (list req params)))
-    (begin
-      (define static-result (serve-static path))
-      (if static-result static-result
-        (http/make-response 404
-          (list (cons "Content-Type" "text/plain")) "Not Found")))))
+    (if (string-prefix? path "/c/")
+      (begin
+        (define client-result (serve-client path))
+        (if client-result client-result
+          (http/make-response 404
+            (list (cons "Content-Type" "text/plain")) "Not Found")))
+      (begin
+        (define static-result (serve-static path))
+        (if static-result static-result
+          (http/make-response 404
+            (list (cons "Content-Type" "text/plain")) "Not Found"))))))
 
 ; --- Server ---
 (define (llweb/set-static dir)
@@ -132,7 +168,7 @@
 
 (define (llweb/start)
   (define host  (env "HOST" "localhost"))
-  (define port (string->number (env "PORT" 8000)))
+  (define port (string->number (env "PORT" "8000")))
   (println "[llweb] starting on " host ":" port)
   (define server (http/create-server host port))
   (http/set-handler server handle-request)

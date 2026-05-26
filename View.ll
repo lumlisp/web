@@ -29,6 +29,21 @@
       (string-append "View not found: " view-name))))
 
 (define (process-template template data)
+  (define (expand-code t)
+    (define start (string-find t "@code("))
+    (if (= start -1) t
+      (begin
+        (define after-open (substring t (+ start 6) (string-length t)))
+        (define q (if (> (string-length after-open) 0) (substring after-open 0 1) ""))
+        (if (or (string=? q "") (and (not (string=? q "\"")) (not (string=? q "'")))) t
+          (begin
+            (define end (string-find after-open (string-append q ")")))
+            (if (= end -1) t
+              (begin
+                (define file-name (substring after-open 1 end))
+                (define script (string-append "<script src=\"/c/" file-name "\"></script>"))
+                (string-append (substring t 0 start) script
+                  (expand-code (substring after-open (+ end 2) (string-length after-open)))))))))))
   (define (process t)
     (define start (string-find t "{{"))
     (if (= start -1) t
@@ -42,4 +57,4 @@
             (define next-val (if (number? val) (number->string val) val))
             (string-append (substring t 0 start) next-val
               (process (substring t (+ end 2) (string-length t)))))))))
-  (process template))
+  (process (expand-code template)))
