@@ -1,5 +1,5 @@
 ; LLWeb Init — project scaffolding
-; Usage: ll ll_modules/lumetas/llweb/init.ll <project-name>
+; Usage: ll ll_modules/lumlisp/web/init.ll <project-name>
 
 (define (dir path)
   (begin (system (string-append "mkdir -p " path)) (println "  created " path)))
@@ -48,7 +48,7 @@ LAYOUT=layout")
     (schema/drop-table \"posts\")))")
 
 (write-file (string-append *root* "/app/Controllers/Index.ll")
-"(import \"lumetas/llweb/View\")
+"(import \"lumlisp/web/View\")
 
 (defclass IndexController (Controller) ())
 
