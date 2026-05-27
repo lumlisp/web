@@ -52,7 +52,7 @@ All controllers are imported via `app/Routes.ll`:
 
 ```scheme
 ; app/Controllers/Posts.ll
-(import "lumetas/llweb/View")
+(import "lumlisp/web/View")
 
 (defclass PostController (Controller) ())
 

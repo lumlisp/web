@@ -9,7 +9,7 @@
 ;   migrate status     Show migration status
 ;   migrate rollback [n]  Alias for down
 
-(import "lumetas/llweb/bootstrap")
+(import "lumlisp/web/bootstrap")
 
 (add-module-path "app")
 (llweb/set-static (env "STATIC_DIR" "static"))
