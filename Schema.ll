@@ -7,12 +7,15 @@
     ((eq? type 'text) "TEXT")
     ((eq? type 'boolean) "INTEGER")
     ((eq? type 'timestamp) "TEXT")
+    ((eq? type 'datetime) "TEXT")
     ((eq? type 'float) "REAL")
     ((eq? type 'decimal) "REAL")
+    ((eq? type 'bigint) "INTEGER")
+    ((eq? type 'blob) "BLOB")
     (else "TEXT")))
 
 (define (type-not-null? type)
-  (or (eq? type 'string) (eq? type 'text) (eq? type 'integer)))
+  (or (eq? type 'string) (eq? type 'text) (eq? type 'integer) (eq? type 'bigint)))
 
 (define (col->sql col)
   (define col-name (symbol->string (car col)))
@@ -24,6 +27,7 @@
   (define has-nullable (member 'nullable extras))
   (define has-unique (member 'unique extras))
   (define has-default (member 'default extras))
+  (define has-unsigned (member 'unsigned extras))
   (define parts (list col-name type-str))
   (if (and (type-not-null? col-type) (not has-nullable))
     (set! parts (append parts (list "NOT NULL"))))
@@ -33,6 +37,8 @@
     (set! parts (append parts (list "AUTOINCREMENT"))))
   (if has-unique
     (set! parts (append parts (list "UNIQUE"))))
+  (if has-unsigned
+    (set! parts (append parts (list "CHECK(" col-name " >= 0)"))))
   (if has-default
     (begin
       (define (find-def lst)
@@ -51,9 +57,21 @@
 
 (define (schema/create-table name columns)
   (define col-parts (map col->sql columns))
+  (define indexes ())
+  (define idx-counter 1)
+  (for-each (lambda (col)
+    (define extras (cddr col))
+    (if (member 'index extras)
+      (begin
+        (define idx-name (string-append "idx_" name "_" (symbol->string (car col))))
+        (set! indexes (append indexes (list
+          (string-append "CREATE INDEX IF NOT EXISTS " idx-name
+            " ON " name " (" (symbol->string (car col)) ")")))))))
+    columns)
   (define sql (string-append "CREATE TABLE IF NOT EXISTS " name " ("
     (string-join col-parts ", ") ")"))
   (db/exec sql)
+  (for-each (lambda (idx) (db/exec idx)) indexes)
   (println "[schema] created table: " name))
 
 (define (schema/drop-table name)
@@ -72,3 +90,18 @@
 (define (schema/rename-table old new)
   (db/exec (string-append "ALTER TABLE " old " RENAME TO " new))
   (println "[schema] renamed table: " old " -> " new))
+
+; --- Index management ---
+
+(define (schema/create-index table columns . name)
+  (define idx-name (if (null? name)
+    (string-append "idx_" table "_" (string-join columns "_"))
+    (car name)))
+  (define cols (string-join (map (lambda (c)
+    (if (pair? c) (string-append (car c) " " (cadr c)) c)) columns) ", "))
+  (db/exec (string-append "CREATE INDEX IF NOT EXISTS " idx-name " ON " table " (" cols ")"))
+  (println "[schema] created index: " idx-name " on " table))
+
+(define (schema/drop-index name)
+  (db/exec (string-append "DROP INDEX IF EXISTS " name))
+  (println "[schema] dropped index: " name))

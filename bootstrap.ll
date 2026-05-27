@@ -1,8 +1,11 @@
 ; LLWeb MVC Framework — bootstrap/core
+; v2.0 — Middleware, WebSocket, Error handling, Query builder
+
 (define (cadr lst) (car (cdr lst)))
 (define (cddr lst) (cdr (cdr lst)))
 (define (caddr lst) (car (cdr (cdr lst))))
 (define (cadddr lst) (car (cdr (cdr (cdr lst)))))
+(define (cdddr lst) (cdr (cdr (cdr lst))))
 (import "lumlisp/web/controller")
 (import "lumlisp/web/env")
 (import "lumlisp/web/Model")
@@ -40,10 +43,52 @@
 
 ; --- State ---
 (define *routes* ())
+(define *ws-routes* ())
 (define *static-dir* "static")
 (define *env* ())
+(define *middleware* ())
+(define *error-handler* ())
+(define *not-found-handler* ())
 
-; --- Router ---
+; ============================================================
+; Middleware Pipeline
+; ============================================================
+
+(define (middleware/add fn)
+  (set! *middleware* (append *middleware* (list fn)))
+  (println "[llweb] middleware registered"))
+
+(define (run-middleware req i)
+  (if (>= i (length *middleware*))
+    req
+    (begin
+      (define mw (list-ref *middleware* i))
+      (define result (mw req (lambda (r) (run-middleware r (+ i 1)))))
+      (if (not (null? result)) result (run-middleware req (+ i 1))))))
+
+; ============================================================
+; Error Handling
+; ============================================================
+
+(define (llweb/set-error-handler handler)
+  (set! *error-handler* handler))
+
+(define (llweb/set-not-found-handler handler)
+  (set! *not-found-handler* handler))
+
+(define (make-error-response status msg)
+  (if (and (= status 404) (not (null? *not-found-handler*)))
+    (*not-found-handler*)
+    (if (and (= status 500) (not (null? *error-handler*)))
+      (*error-handler* status msg)
+      (http/make-response status
+        (list (cons "Content-Type" "text/plain"))
+        (string-append (number->string status) " " msg)))))
+
+; ============================================================
+; Router
+; ============================================================
+
 (define (router/add-route method path controller-class method-sym)
   (set! *routes* (append *routes* (list (list method path controller-class method-sym))))
   (println "[llweb] route " method " " path))
@@ -82,14 +127,46 @@
           ()))))
   (try *routes*))
 
-; --- Static ---
+; ============================================================
+; WebSocket Router
+; ============================================================
+
+(define (router/add-ws-route path handler-fn)
+  (set! *ws-routes* (append *ws-routes* (list (list path handler-fn))))
+  (println "[llweb] ws route " path))
+
+(define (match-ws-route path)
+  (define parts (split-path path))
+  (define (try routes)
+    (if (null? routes) ()
+      (begin
+        (define r (car routes))
+        (define r-path (car r))
+        (define r-handler (cadr r))
+        (define r-parts (split-path r-path))
+        (if (= (length parts) (length r-parts))
+          (begin
+            (define result (extract-params parts r-parts ()))
+            (if (not (null? result))
+              (list r-handler (cdr result))
+              (try (cdr routes))))
+          (try (cdr routes))))))
+  (try *ws-routes*))
+
+; ============================================================
+; Static File Serving
+; ============================================================
+
 (define (guess-mime path)
   (cond
     ((string-suffix? ".css" path) "text/css")
     ((string-suffix? ".js" path) "application/javascript")
+    ((string-suffix? ".mjs" path) "application/javascript")
+    ((string-suffix? ".wasm" path) "application/wasm")
     ((string-suffix? ".png" path) "image/png")
     ((string-suffix? ".jpg" path) "image/jpeg")
     ((string-suffix? ".jpeg" path) "image/jpeg")
+    ((string-suffix? ".webp" path) "image/webp")
     ((string-suffix? ".gif" path) "image/gif")
     ((string-suffix? ".svg" path) "image/svg+xml")
     ((string-suffix? ".ico" path) "image/x-icon")
@@ -97,6 +174,10 @@
     ((string-suffix? ".html" path) "text/html")
     ((string-suffix? ".txt" path) "text/plain")
     ((string-suffix? ".pdf" path) "application/pdf")
+    ((string-suffix? ".woff2" path) "font/woff2")
+    ((string-suffix? ".woff" path) "font/woff")
+    ((string-suffix? ".ttf" path) "font/ttf")
+    ((string-suffix? ".otf" path) "font/otf")
     (else "application/octet-stream")))
 
 (define (serve-static path)
@@ -107,7 +188,10 @@
       (file->string filepath))
     ()))
 
-; --- Client code serving ---
+; ============================================================
+; Client Code Serving (LL to JS transpilation)
+; ============================================================
+
 (define *client-dir* "app/client")
 (define *code-cache* ())
 
@@ -137,10 +221,40 @@
         content))
     ()))
 
-; --- Handler ---
+; ============================================================
+; Request Body Parsing
+; ============================================================
+
+(define (parse-query-string qs)
+  (if (or (null? qs) (string=? qs "")) ()
+    (map (lambda (pair)
+      (define parts (string-split pair "="))
+      (cons (car parts) (if (> (length parts) 1) (cadr parts) "")))
+      (string-split qs "&"))))
+
+(define (body-parse-json req)
+  (define body (http/request-body req))
+  (if (or (null? body) (string=? body "")) ()
+    (json/decode body)))
+
+(define (body-parse-form req)
+  (define body (http/request-body req))
+  (if (or (null? body) (string=? body "")) ()
+    (parse-query-string body)))
+
+; ============================================================
+; Main Request Handler
+; ============================================================
+
 (define (handle-request req)
   (define method (http/request-method req))
   (define path (http/request-path req))
+
+  ; Run middleware pipeline
+  (define mw-result (run-middleware req 0))
+  (define final-req (if (null? mw-result) req mw-result))
+
+  ; Try HTTP routes
   (define route (match-route method path))
   (if (not (null? route))
     (begin
@@ -148,21 +262,32 @@
       (define method-sym (cadr route))
       (define params (caddr route))
       (define instance (new controller-class
-        'req req 'params params 'method method 'path path))
-      (send instance method-sym (list req params)))
+        'req final-req 'params params 'method method 'path path))
+      (send instance method-sym (list final-req params)))
     (if (string-prefix? path "/c/")
       (begin
         (define client-result (serve-client path))
         (if client-result client-result
-          (http/make-response 404
-            (list (cons "Content-Type" "text/plain")) "Not Found")))
-      (begin
-        (define static-result (serve-static path))
-        (if static-result static-result
-          (http/make-response 404
-            (list (cons "Content-Type" "text/plain")) "Not Found"))))))
+          (make-error-response 404 "Not Found")))
+      (if (string-prefix? path "/ws/")
+        (begin
+          (define ws-path (substring path 3 (string-length path)))
+          (define ws-match (match-ws-route ws-path))
+          (if (not (null? ws-match))
+            (begin
+              (define ws-handler (car ws-match))
+              (define ws-params (cadr ws-match))
+              (ws-handler final-req ws-params))
+            (make-error-response 404 "WebSocket route not found")))
+        (begin
+          (define static-result (serve-static path))
+          (if static-result static-result
+            (make-error-response 404 "Not Found")))))))
 
-; --- Server ---
+; ============================================================
+; Server
+; ============================================================
+
 (define (llweb/set-static dir)
   (set! *static-dir* dir))
 
@@ -170,6 +295,8 @@
   (define host  (env "HOST" "localhost"))
   (define port (string->number (env "PORT" "8000")))
   (println "[llweb] starting on " host ":" port)
+  (println "[llweb] middleware: " (length *middleware*) " registered")
+  (println "[llweb] routes: " (length *routes*) " http, " (length *ws-routes*) " ws")
   (define server (http/create-server host port))
   (http/set-handler server handle-request)
   (http/start-server server))
