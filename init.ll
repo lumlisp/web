@@ -26,7 +26,7 @@ STATIC_DIR=static
 VIEW_DIR=app/Views
 LAYOUT=layout")
 
-(write-file (string-append *root* "/main.ll") (file->string (string-append *root* "/ll_modules/lumetas/llweb/init/main.ll")))
+(write-file (string-append *root* "/web") (file->string (string-append *root* "/ll_modules/lumlisp/web/init/main.ll")))
 
 (write-file (string-append *root* "/app/Routes.ll")
 "; LLWeb — Routes
@@ -60,7 +60,7 @@ LAYOUT=layout")
     (cons \"message\" \"Your Lum Lisp web application is ready. Start building something incredible.\")
     (cons \"version\" \"0.0.1\")))))")
 
-(write-file (string-append *root* "/app/Views/Welcome.html") (file->string (string-append *root* "/ll_modules/lumetas/llweb/init/Welcome.html")))
+(write-file (string-append *root* "/app/Views/Welcome.html") (file->string (string-append *root* "/ll_modules/lumlisp/web/init/Welcome.html")))
 
 (write-file (string-append *root* "/app/client/main.ll")
 "; LLWeb Client Code
