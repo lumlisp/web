@@ -18,7 +18,7 @@
   (or (eq? type 'string) (eq? type 'text) (eq? type 'integer) (eq? type 'bigint)))
 
 (define (col->sql col)
-  (define col-name (symbol->string (car col)))
+  (define col-name (string-append "\"" (symbol->string (car col)) "\""))
   (define col-type (cadr col))
   (define extras (cddr col))
   (define type-str (type->sql col-type))
@@ -65,30 +65,31 @@
       (begin
         (define idx-name (string-append "idx_" name "_" (symbol->string (car col))))
         (set! indexes (append indexes (list
-          (string-append "CREATE INDEX IF NOT EXISTS " idx-name
-            " ON " name " (" (symbol->string (car col)) ")")))))))
+          (string-append "CREATE INDEX IF NOT EXISTS \"" idx-name
+            "\" ON \"" name "\" (\"" (symbol->string (car col)) "\")")))))))
     columns)
-  (define sql (string-append "CREATE TABLE IF NOT EXISTS " name " ("
+  (define sql (string-append "CREATE TABLE IF NOT EXISTS \"" name "\" ("
     (string-join col-parts ", ") ")"))
   (db/exec sql)
   (for-each (lambda (idx) (db/exec idx)) indexes)
   (println "[schema] created table: " name))
 
 (define (schema/drop-table name)
-  (db/exec (string-append "DROP TABLE IF EXISTS " name))
+  (db/exec (string-append "DROP TABLE IF EXISTS \"" name "\""))
   (println "[schema] dropped table: " name))
 
 (define (schema/add-column table col)
   (define col-def (col->sql col))
-  (db/exec (string-append "ALTER TABLE " table " ADD COLUMN " col-def))
-  (println "[schema] added column to " table ": " (symbol->string (car col))))
+  (define col-name (symbol->string (car col)))
+  (db/exec (string-append "ALTER TABLE \"" table "\" ADD COLUMN " col-def))
+  (println "[schema] added column to " table ": " col-name))
 
 (define (schema/drop-column table col-name)
-  (db/exec (string-append "ALTER TABLE " table " DROP COLUMN " col-name))
+  (db/exec (string-append "ALTER TABLE \"" table "\" DROP COLUMN \"" col-name "\""))
   (println "[schema] dropped column from " table ": " col-name))
 
 (define (schema/rename-table old new)
-  (db/exec (string-append "ALTER TABLE " old " RENAME TO " new))
+  (db/exec (string-append "ALTER TABLE \"" old "\" RENAME TO \"" new "\""))
   (println "[schema] renamed table: " old " -> " new))
 
 ; --- Index management ---
@@ -98,10 +99,12 @@
     (string-append "idx_" table "_" (string-join columns "_"))
     (car name)))
   (define cols (string-join (map (lambda (c)
-    (if (pair? c) (string-append (car c) " " (cadr c)) c)) columns) ", "))
-  (db/exec (string-append "CREATE INDEX IF NOT EXISTS " idx-name " ON " table " (" cols ")"))
+    (if (pair? c) (string-append "\"" (car c) "\" " (cadr c))
+                  (string-append "\"" c "\""))) columns) ", "))
+  (db/exec (string-append "CREATE INDEX IF NOT EXISTS \"" idx-name
+    "\" ON \"" table "\" (" cols ")"))
   (println "[schema] created index: " idx-name " on " table))
 
 (define (schema/drop-index name)
-  (db/exec (string-append "DROP INDEX IF EXISTS " name))
+  (db/exec (string-append "DROP INDEX IF EXISTS \"" name "\""))
   (println "[schema] dropped index: " name))
