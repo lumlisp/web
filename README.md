@@ -221,7 +221,7 @@ Views live in `app/Views/*.html`. Variables use `{{name}}` syntax.
 <!-- app/Views/Posts.html -->
 <h1>{{title}}</h1>
 <p>{{message}}</p>
-<script>@code("main.ll")</script>  <!-- LL → JS transpilation -->
+@code("main.ll")  <!-- LL → JS transpilation -->
 ```
 
 The `@code("file.ll")` directive transpiles Lum Lisp from `app/client/` to JavaScript at runtime.
@@ -426,7 +426,7 @@ LL → JS transpilation. Files in `app/client/` are served at `/c/` and automati
 
 In templates:
 ```html
-<script>@code("main.ll")</script>
+@code("main.ll")
 ```
 
 Supported in JS target: `define`, `lambda`, `if`, `cond`, `while`, `for`, `future`/`await`/`co`, DOM operations (`dom/q`, `dom/id`, `dom/on`, `dom/css`), JSON, OOP.
