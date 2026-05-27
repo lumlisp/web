@@ -250,6 +250,9 @@
 (define (handle-request req)
   (define method (http/request-method req))
   (define path (http/request-path req))
+  (define qpos (string-find path "?"))
+  (if (> qpos -1)
+    (set! path (substring path 0 qpos)))
 
   ; Run middleware pipeline
   (define mw-result (run-middleware req 0))
